@@ -8,27 +8,24 @@ public class GrassTypeCollection
     // ! REMOVE BEFORE PUBLICATION
     [SerializeField] bool stressTest;
     [SerializeField] int stressTestDensity;
-
-
-
     [SerializeField] GrassType[] grassTypes;
 
-    public void LoadAllBuffers ()
+    public void LoadAllBuffers (ComputeShader shader)
     {
         foreach (var type in grassTypes)
         {
             // ! REMOVE BEFORE PUBLICATION
             if(stressTest) GenerateStressTest(type.Collection);
 
-            type.LoadGrassBuffer();
+            type.LoadGrassBuffer(shader);
         }
     }
 
-    public void Render (ComputeBuffer argsBuffer)
+    public void Render ()
     {
         foreach (var type in grassTypes)
         {
-            type.Render(argsBuffer);
+            type.Render();
         }
     }
 
@@ -53,6 +50,14 @@ public class GrassTypeCollection
         foreach (var type in grassTypes)
         {
             type.Release();
+        }
+    }
+
+    public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate)
+    {
+        foreach (var type in grassTypes)
+        {
+            type.Cull(camTransform, distance, cameraHalfDiagonalFovDotProduct, ignoreRate);
         }
     }
     
@@ -80,22 +85,59 @@ public class GrassType
     public Mesh Mesh;
     public Material Material;
     public GrassDataCollection Collection;
-    
-    ComputeBuffer grassBuffer;
 
-    public void LoadGrassBuffer ()
+    ComputeShader cullingShader;
+    ComputeBuffer grassBuffer;
+    ComputeBuffer grassBufferRender;
+    ComputeBuffer argsBuffer;
+
+    int kernel;
+
+    uint threadX;
+
+    uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
+
+    public void LoadGrassBuffer (ComputeShader shader)
     {
-        grassBuffer = new(Collection.blades.Length, GrassBlade.Size);
+        grassBuffer = new(Collection.blades.Length, GrassBlade.Size, ComputeBufferType.Structured);
         grassBuffer.SetData(Collection.blades);
 
-        Material.SetBuffer("_bladeBuffer", grassBuffer);
+        grassBufferRender = new(Collection.blades.Length, GrassBlade.Size, ComputeBufferType.Append);
+
+        argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+
+        cullingShader = Object.Instantiate(shader);
+
+        kernel = cullingShader.FindKernel("Cull");
+
+        cullingShader.SetBuffer(kernel, "_bladeBuffer", grassBuffer);
+        cullingShader.SetBuffer(kernel, "_bladeBufferRender", grassBufferRender);
+        cullingShader.GetKernelThreadGroupSizes(kernel, out threadX, out _, out _);
     }
 
-    public void Render (ComputeBuffer argsBuffer)
+    public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate) 
+    {
+        grassBufferRender.SetCounterValue(0);
+
+        cullingShader.SetVector("_cameraPosition", camTransform.position);
+        cullingShader.SetVector("_cameraForward", camTransform.forward);
+        cullingShader.SetFloat("_cameraHalfDiagonalFovDotProduct", cameraHalfDiagonalFovDotProduct);
+        cullingShader.SetFloat("_distance", distance);
+        cullingShader.SetInt("_ignoreRate", ignoreRate);
+
+        cullingShader.Dispatch(kernel, (int)(Collection.blades.Length / threadX), 1, 1);
+
+        Material.SetBuffer("_bladeBuffer", grassBufferRender);
+    }
+
+    public void Render ()
     {
         for (int i = 0; i < Mesh.subMeshCount; i++)
         {
-            argsBuffer.SetData( CreateArgsBuffer( Mesh.GetIndexCount(i), (uint)Collection.blades.Length) );
+            args[0] = Mesh.GetIndexCount(i);
+            argsBuffer.SetData( args );
+            ComputeBuffer.CopyCount(grassBufferRender, argsBuffer,sizeof(uint));
+
             Graphics.DrawMeshInstancedIndirect
             (
                 Mesh, i, Material,
@@ -108,7 +150,7 @@ public class GrassType
     public void Release ()
     {
         grassBuffer.Release();
+        grassBufferRender.Release();
+        argsBuffer.Release();
     }
-
-    uint[] CreateArgsBuffer(uint meshIndex, uint count) => new uint[5] { meshIndex, count, 0, 0, 0 };
 }
