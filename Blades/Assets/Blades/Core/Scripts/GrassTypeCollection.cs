@@ -29,7 +29,7 @@ public class GrassTypeCollection
     {
         foreach (var type in grassTypes)
         {
-            type.Material.SetBuffer(bufferName, buffer);
+            type.MaterialInstance.SetBuffer(bufferName, buffer);
         }
     }
 
@@ -37,7 +37,7 @@ public class GrassTypeCollection
     {
         foreach (var type in grassTypes)
         {
-            type.Material.SetInt(bufferName, integer);
+            type.MaterialInstance.SetInt(bufferName, integer);
         }
     }
 
@@ -61,9 +61,10 @@ public class GrassTypeCollection
 [System.Serializable]
 public class GrassType
 {
-    public Mesh Mesh;
-    public Material Material;
+    public GrassTypeAsset TypeAsset;
     public GrassDataCollection Collection;
+
+    public Material MaterialInstance { get; private set; }
 
     ComputeShader cullingShader;
     ComputeBuffer grassBuffer;
@@ -93,6 +94,8 @@ public class GrassType
         cullingShader.SetBuffer(kernel, "_bladeBuffer", grassBuffer);
         cullingShader.SetBuffer(kernel, "_bladeBufferRender", grassBufferRender);
         cullingShader.GetKernelThreadGroupSizes(kernel, out threadX, out _, out _);
+
+        MaterialInstance = Object.Instantiate(TypeAsset.Material);
     }
 
     public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate) 
@@ -109,21 +112,23 @@ public class GrassType
         int xThreadCount = (int)(Collection.Count / threadX);
         if(xThreadCount > 0) cullingShader.Dispatch(kernel, xThreadCount, 1, 1);
 
-        Material.SetBuffer("_bladeBuffer", grassBufferRender);
+        MaterialInstance.SetBuffer("_bladeBuffer", grassBufferRender);
     }
 
     public void Render ()
     {
+        Mesh mesh = TypeAsset.Mesh;
+
         if(Collection.Count == 0) return;
-        for (int i = 0; i < Mesh.subMeshCount; i++)
+        for (int i = 0; i < mesh.subMeshCount; i++)
         {
-            args[0] = Mesh.GetIndexCount(i);
+            args[0] = mesh.GetIndexCount(i);
             argsBuffer.SetData( args );
             ComputeBuffer.CopyCount(grassBufferRender, argsBuffer,sizeof(uint));
 
             Graphics.DrawMeshInstancedIndirect
             (
-                Mesh, i, Material,
+                mesh, i, MaterialInstance,
                 new Bounds(Vector3.zero, Vector3.one * 1000),
                 argsBuffer
             );
