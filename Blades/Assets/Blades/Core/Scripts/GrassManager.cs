@@ -2,33 +2,55 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteAlways]
 public class GrassManager : MonoBehaviour
 {
     public static InteractorManager InteractorManager { get; } = new();
 
     [SerializeField] int ignoreRate;
-    [SerializeField] float viewDistance;
     [SerializeField] ComputeShader cullingShader;
     [SerializeField] GrassTypeCollection grassTypeCollection;
 
+    #if UNITY_EDITOR
+    [SerializeField] [HideInInspector] public GrassSceneSettings sceneSettings;
+    #endif
+
     ComputeBuffer interactionBuffer;
 
-    Camera camera;
+    Camera mainCamera;
 
     int updateRate = 3;
+    float viewDistance = 50;
 
     float previousFOV;
     float cameraHalfDiagonalFovDotProduct;
 
-    void Start ()
+    public void ChangeCamera (Camera newCamera) 
+    {
+        mainCamera = newCamera;
+    }
+
+    public void ChangeUpdateRate (int newUpdateRate) 
+    {
+        updateRate = newUpdateRate;
+    }
+
+    public void ChangeViewDistance (float newViewDistance) 
+    {
+        viewDistance = newViewDistance;
+    }
+
+    public GrassTypeCollection TypeCollection => grassTypeCollection;
+
+    void OnEnable ()
     {
         //Create the interactionBuffer with a max of 32 interactors.
         interactionBuffer = new(32, sizeof(float) * 3, ComputeBufferType.Append);
 
         //Load all buffers for every grass type
         grassTypeCollection.LoadAllBuffers(cullingShader);
-
-        camera = Camera.main;
+    
+        mainCamera = Camera.main;
     }
 
     void Update ()
@@ -49,18 +71,18 @@ public class GrassManager : MonoBehaviour
         grassTypeCollection.SetMaterialBuffer("_interactionBuffer", interactionBuffer);
         grassTypeCollection.SetMaterialInt("_interactorCount", InteractorManager.Length);
         
-        grassTypeCollection.Cull(camera.transform, viewDistance, cameraHalfDiagonalFovDotProduct, ignoreRate);
+        grassTypeCollection.Cull(mainCamera.transform, viewDistance, cameraHalfDiagonalFovDotProduct, ignoreRate);
     }
 
     void UpdateFOV () 
     {
-        if (camera.fieldOfView == previousFOV) return;
+        if (mainCamera.fieldOfView == previousFOV) return;
         
-        previousFOV = camera.fieldOfView;
-        cameraHalfDiagonalFovDotProduct = GetCameraHalfDiagonalFovDotProduct(camera);
+        previousFOV = mainCamera.fieldOfView;
+        cameraHalfDiagonalFovDotProduct = GetCameraHalfDiagonalFovDotProduct(mainCamera);
     }
 
-    void OnDestroy ()
+    void OnDisable ()
     {
         Release();
     }
@@ -70,29 +92,6 @@ public class GrassManager : MonoBehaviour
         //Manually release all buffers to prevent warnings.
         grassTypeCollection.Release();
         interactionBuffer.Release();
-    }
-
-    public static GrassBlade? CreateGrassBlade (Vector3 position, float rotation)
-    {
-
-        // ! Move all pixel detection to the tool once it's started
-
-        float distanceMargin = .2f;
-
-        Ray colorRay = new(position + new Vector3(0, distanceMargin, 0), -Vector3.up);
-        if (!Physics.Raycast(colorRay, out RaycastHit raycastHit)) return null;
-
-        Transform root = raycastHit.collider.transform.root;
-        Renderer renderer = root.GetComponentInChildren<Renderer>();
-
-        Texture2D texture2D = renderer.material.mainTexture as Texture2D;
-
-        Vector2 pCoord = raycastHit.textureCoord * new Vector2(texture2D.width, texture2D.height);
-        Vector2 tiling = renderer.material.mainTextureScale;
-
-        Color color = texture2D.GetPixel(Mathf.FloorToInt(pCoord.x * tiling.x) , Mathf.FloorToInt(pCoord.y * tiling.y));
-
-        return new GrassBlade(position, rotation, color);
     }
 
     public static float GetCameraHalfDiagonalFovDotProduct(Camera cam)
@@ -108,4 +107,10 @@ public class GrassManager : MonoBehaviour
         float cosHalfCamDiagonalFov = camFarDistance / camHypotenuse;
         return cosHalfCamDiagonalFov;
     }
+}
+
+[System.Serializable]
+public struct GrassSceneSettings
+{
+    public float ViewDistance;
 }

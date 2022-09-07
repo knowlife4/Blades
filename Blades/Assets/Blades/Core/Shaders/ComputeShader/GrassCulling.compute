@@ -3,7 +3,7 @@
 struct GrassBlade
 {
     float3 Position;
-    float Rotation;
+    float4x4 Rotation;
     float Height;
     float3 Color;
 };

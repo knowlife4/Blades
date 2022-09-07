@@ -200,14 +200,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0.99397725, z: -0, w: 0.10958674}
   m_LocalPosition: {x: 46.06, y: 1.07, z: 39.15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -167.417, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -401,15 +401,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreRate: 1
-  viewDistance: 50
   cullingShader: {fileID: 7200000, guid: 917991f2979a5de4f8d1fa9c749cf74a, type: 3}
   grassTypeCollection:
-    stressTest: 1
-    stressTestDensity: 250
     grassTypes:
     - Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
       Material: {fileID: 2100000, guid: abb1a165176cbb546a9670ccf56d832d, type: 2}
+      Collection: {fileID: 11400000, guid: 256703bfc29e52644a63e5e57c613720, type: 2}
+    - Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+      Material: {fileID: 2100000, guid: 729b2d253ee4f9d41be85b2e3e9570c3, type: 2}
       Collection: {fileID: 11400000, guid: e55932371968d0b4b9b9a7ef9c95d8b1, type: 2}
+  sceneSettings:
+    ViewDistance: 200
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

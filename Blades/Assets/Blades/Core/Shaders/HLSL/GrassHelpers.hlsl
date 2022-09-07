@@ -1,7 +1,7 @@
 struct GrassBlade
 {
     float3 Position;
-    float Rotation;
+    float4x4 Rotation;
     float Height;
     float3 Color;
 };
@@ -14,7 +14,7 @@ StructuredBuffer<float3> _interactionBuffer;
 float3 _bladePosition;
 float _bladeHeight;
 float3 _bladeColor;
-float _bladeRotation;
+float4x4 _bladeRotation;
 int _interactorCount;
 
 #if UNITY_ANY_INSTANCING_ENABLED
@@ -55,7 +55,7 @@ void InstancePosition_half (out float3 position)
     position = _bladePosition;
 }
 
-void InstanceRotation_half (out float rotation)
+void InstanceRotation_float (out float4x4 rotation)
 {
     rotation = _bladeRotation;
 }
@@ -70,7 +70,7 @@ void InstanceColor_half (out float3 color)
     color = _bladeColor;
 }
 
-void Instancing_float (float3 Position, out float3 Out)
+void Instancing_half (float3 Position, out float3 Out)
 {
 	Out = Position;
 }

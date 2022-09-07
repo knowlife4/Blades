@@ -5,18 +5,14 @@ using UnityEngine;
 [System.Serializable]
 public class GrassTypeCollection
 {
-    // ! REMOVE BEFORE PUBLICATION
-    [SerializeField] bool stressTest;
-    [SerializeField] int stressTestDensity;
     [SerializeField] GrassType[] grassTypes;
+
+    public GrassType[] GrassTypes => grassTypes;
 
     public void LoadAllBuffers (ComputeShader shader)
     {
         foreach (var type in grassTypes)
         {
-            // ! REMOVE BEFORE PUBLICATION
-            if(stressTest) GenerateStressTest(type.Collection);
-
             type.LoadGrassBuffer(shader);
         }
     }
@@ -60,23 +56,6 @@ public class GrassTypeCollection
             type.Cull(camTransform, distance, cameraHalfDiagonalFovDotProduct, ignoreRate);
         }
     }
-    
-    void GenerateStressTest (GrassDataCollection collection) 
-    {
-        float scaleFactor = (1f/stressTestDensity) * 100;
-        List<GrassBlade> blades = new();
-        for (int x = 0; x < stressTestDensity; x++)
-        {
-            for (int z = 0; z < stressTestDensity; z++)
-            {
-                float random = Random.Range(-.5f, .5f);
-                GrassBlade? blade = GrassManager.CreateGrassBlade(new Vector3 (x + random, 0, z + random) * scaleFactor, Random.Range(0, 360));
-                if(blade is not null) blades.Add(blade.Value); 
-            }
-        }
-
-        collection.blades = blades.ToArray();
-    }
 }
 
 [System.Serializable]
@@ -99,10 +78,11 @@ public class GrassType
 
     public void LoadGrassBuffer (ComputeShader shader)
     {
-        grassBuffer = new(Collection.blades.Length, GrassBlade.Size, ComputeBufferType.Structured);
-        grassBuffer.SetData(Collection.blades);
+        if(Collection.Count == 0) return;
+        grassBuffer = new(Collection.Count, GrassBlade.Size, ComputeBufferType.Structured);
+        grassBuffer.SetData(Collection.ToArray());
 
-        grassBufferRender = new(Collection.blades.Length, GrassBlade.Size, ComputeBufferType.Append);
+        grassBufferRender = new(Collection.Count, GrassBlade.Size, ComputeBufferType.Append);
 
         argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
 
@@ -117,6 +97,7 @@ public class GrassType
 
     public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate) 
     {
+        if(Collection.Count == 0) return;
         grassBufferRender.SetCounterValue(0);
 
         cullingShader.SetVector("_cameraPosition", camTransform.position);
@@ -124,14 +105,16 @@ public class GrassType
         cullingShader.SetFloat("_cameraHalfDiagonalFovDotProduct", cameraHalfDiagonalFovDotProduct);
         cullingShader.SetFloat("_distance", distance);
         cullingShader.SetInt("_ignoreRate", ignoreRate);
-
-        cullingShader.Dispatch(kernel, (int)(Collection.blades.Length / threadX), 1, 1);
+        
+        int xThreadCount = (int)(Collection.Count / threadX);
+        if(xThreadCount > 0) cullingShader.Dispatch(kernel, xThreadCount, 1, 1);
 
         Material.SetBuffer("_bladeBuffer", grassBufferRender);
     }
 
     public void Render ()
     {
+        if(Collection.Count == 0) return;
         for (int i = 0; i < Mesh.subMeshCount; i++)
         {
             args[0] = Mesh.GetIndexCount(i);
@@ -149,8 +132,14 @@ public class GrassType
 
     public void Release ()
     {
-        grassBuffer.Release();
-        grassBufferRender.Release();
-        argsBuffer.Release();
+        if(grassBuffer is not null) grassBuffer.Release();
+        if(grassBufferRender is not null) grassBufferRender.Release();
+        if(argsBuffer is not null) argsBuffer.Release();
+    }
+
+    public void Reload () 
+    {
+        Release();
+        LoadGrassBuffer(cullingShader);
     }
 }
