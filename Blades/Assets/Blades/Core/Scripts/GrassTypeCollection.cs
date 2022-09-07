@@ -77,6 +77,8 @@ public class GrassType
 
     uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
 
+    bool execute => Collection.Count > 0 && grassBuffer is not null;
+
     public void LoadGrassBuffer (ComputeShader shader)
     {
         if(Collection.Count == 0) return;
@@ -100,7 +102,7 @@ public class GrassType
 
     public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate) 
     {
-        if(Collection.Count == 0) return;
+        if(!execute) return;
         grassBufferRender.SetCounterValue(0);
 
         cullingShader.SetVector("_cameraPosition", camTransform.position);
@@ -117,9 +119,9 @@ public class GrassType
 
     public void Render ()
     {
-        Mesh mesh = TypeAsset.Mesh;
+        if(!execute) return;
 
-        if(Collection.Count == 0) return;
+        Mesh mesh = TypeAsset.Mesh;
         for (int i = 0; i < mesh.subMeshCount; i++)
         {
             args[0] = mesh.GetIndexCount(i);
