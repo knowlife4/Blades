@@ -1,0 +1,17 @@
+{
+    "name": "Blades",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b21f2cd420f7faf45ae263b1308551c1",
+        "GUID:4abdd87b9e2e23847868d52398a9350b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

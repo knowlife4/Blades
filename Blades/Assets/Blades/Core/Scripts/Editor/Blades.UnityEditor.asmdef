@@ -1,0 +1,16 @@
+{
+    "name": "Blades.UnityEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:3f0d36174575da84f932ceca89fca110"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

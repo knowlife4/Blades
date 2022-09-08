@@ -1,123 +1,176 @@
 using UnityEngine;
 using UnityEditor;
-using System.Linq;
+using Blades.Rendering;
 
-[CustomEditor(typeof(GrassManager))]
-public class GrassManagerEditor : Editor
+namespace Blades.UnityEditor
 {
-    GrassManager manager;
-
-    EditModeSelector modeSelector;
-
-    void OnEnable ()
+    [CustomEditor(typeof(GrassManager))]
+    public class GrassManagerEditor : Editor
     {
-        manager = (GrassManager)target;
-        modeSelector = new
-        (
-            new PaintEditMode(manager, "Paint"),
-            new EraseEditMode(manager, "Erase"),
-            new UpdateEditMode(manager, "Update"),
-            new FloodEditMode(manager, "Flood")
-        );
-    }
+        GrassManager manager;
 
-    void OnSceneGUI () 
-    {
-        Event e = Event.current;
-        if(!e.alt) return;
-        
-        bool interacting = e.isMouse && e.type == EventType.MouseDrag && e.button == 1;
+        EditModeSelector modeSelector;
 
-        if(interacting) Event.current.Use();
-
-        modeSelector.Use(interacting);
-    }
-
-    public override void OnInspectorGUI()
-    {
-        base.OnInspectorGUI();
-        
-        manager.sceneSettings.ViewDistance = EditorGUILayout.FloatField("View Distance", manager.sceneSettings.ViewDistance);
-        manager.ChangeViewDistance(manager.sceneSettings.ViewDistance);
-
-        SceneView lastScene = SceneView.lastActiveSceneView;
-        if(lastScene is null) return;
-
-        if(!Application.isPlaying)
+        void OnEnable ()
         {
-            manager.ChangeCamera(lastScene.camera);
-            manager.ChangeUpdateRate(1);
+            manager = (GrassManager)target;
+            modeSelector = new
+            (
+                new PaintEditMode(manager, "Paint"),
+                new EraseEditMode(manager, "Erase"),
+                new UpdateEditMode(manager, "Update"),
+                new FloodEditMode(manager, "Flood")
+            );
         }
 
-        modeSelector.RenderGUI();
+        void OnSceneGUI () 
+        {
+            Event e = Event.current;
+            if(!e.alt) return;
+            
+            bool interacting = e.isMouse && e.type == EventType.MouseDrag && e.button == 1;
 
-        SceneView.RepaintAll();
+            bool scrolling = e.type == EventType.ScrollWheel;
+            float delta = -e.delta.y;
+
+            if(interacting || scrolling) Event.current.Use();
+
+            if(scrolling)
+            {
+                if(e.shift)
+                {
+                    modeSelector.AddBrushHardness(delta/10);
+                }
+                else
+                {
+                    modeSelector.AddBrushSize(delta/10);
+                }
+            }
+
+            modeSelector.Use(interacting);
+
+            if(e.type == EventType.MouseDown) modeSelector.UseStart();
+            if(e.type == EventType.MouseUp) modeSelector.UseEnd();
+        }
+
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+            
+            manager.sceneSettings.ViewDistance = EditorGUILayout.FloatField("View Distance", manager.sceneSettings.ViewDistance);
+            manager.ChangeViewDistance(manager.sceneSettings.ViewDistance);
+
+            UndoRedo();
+
+            SceneView lastScene = SceneView.lastActiveSceneView;
+            if(lastScene is null) return;
+
+            if(!Application.isPlaying)
+            {
+                manager.ChangeCamera(lastScene.camera);
+                manager.ChangeUpdateRate(1);
+            }
+
+            modeSelector.RenderGUI();
+
+            SceneView.RepaintAll();
+        }
+
+        public void UndoRedo () 
+        {
+            GrassDataCollection lastUpdated = GrassDataCollection.LastUpdated;
+
+            if(lastUpdated is null) return;
+
+            GUILayout.BeginHorizontal();
+                EditorGUI.BeginDisabledGroup(!lastUpdated.CanUndo);
+                    if(GUILayout.Button("Undo"))
+                    {
+                        lastUpdated.Undo();
+                        manager.TypeCollection.Reload();
+                    }
+                EditorGUI.EndDisabledGroup();
+
+                EditorGUI.BeginDisabledGroup(!lastUpdated.CanRedo);
+                    if(GUILayout.Button("Redo")) 
+                    {
+                        lastUpdated.Redo();
+                        manager.TypeCollection.Reload();
+                    }
+                EditorGUI.EndDisabledGroup();
+            GUILayout.EndHorizontal();
+        }
     }
-}
 
-public class GrassProperties
-{
-    public GrassProperties (GrassManager manager)
+    public class GrassProperties
     {
-        Manager = manager;
-    }
+        public GrassProperties (GrassManager manager)
+        {
+            Manager = manager;
+        }
 
-    public GrassManager Manager { get; }
+        public GrassManager Manager { get; }
 
-    public int Type { get; set; }
+        public int Type { get; set; }
 
-    public Vector2 BrushSize { get; set; } = new (.25f, 5f);
+        public Vector2 BrushSize { get; set; } = new (.25f, 5f);
 
-    public float Density { get; set; } = 1;
+        public Vector2 BrushSizeMinMax { get; set; } = new (.25f, 5f);
 
-    public bool UseHeight { get; set; }
-    public float Height { get; set; }
+        public float Density { get; set; } = 1;
 
-    public bool UseColor { get; set; }
-    public Color Color { get; set; }
+        public float NormalLimit { get; set; } = 180;
 
-    public void RenderGUI (bool showUse)
-    {
-        RenderBrushGUI();
-        GUILayout.Space(10);
-        RenderGrassGUI(showUse);
-    }
+        public bool UseHeight { get; set; }
+        public float Height { get; set; }
 
-    public void RenderBrushGUI ()
-    {
-        GUILayout.Label("Brush Properties:");
+        public bool UseColor { get; set; }
+        public Color Color { get; set; }
 
-        GrassType[] grassTypes = Manager.TypeCollection.GrassTypes;
-        Type = EditorGUILayout.IntSlider("Grass Type", Type, 0, grassTypes.Length - 1);
+        public void RenderGUI (bool showUse)
+        {
+            RenderBrushGUI();
+            GUILayout.Space(10);
+            RenderGrassGUI(showUse);
+        }
 
-        Vector2 brushSize = BrushSize; 
-        EditorGUILayout.MinMaxSlider("Brush Size", ref brushSize.x, ref brushSize.y, .25f, 5f);
-        BrushSize = brushSize;
+        public void RenderBrushGUI ()
+        {
+            GUILayout.Label("Brush Properties:");
 
-        Density = EditorGUILayout.Slider("Grass Density", Density, .01f, 5f);
-    }
+            GrassType[] grassTypes = Manager.TypeCollection.GrassTypes;
+            Type = EditorGUILayout.IntSlider("Grass Type", Type, 0, grassTypes.Length - 1);
 
-    public void RenderGrassGUI (bool showUse)
-    {
-        GUILayout.Label("Grass Properties:");
+            Vector2 brushSize = BrushSize; 
+            EditorGUILayout.MinMaxSlider("Brush Size", ref brushSize.x, ref brushSize.y, BrushSizeMinMax.x, BrushSizeMinMax.y);
+            BrushSize = brushSize;
 
-        EditorGUIUtility.labelWidth = 100;
-        GUILayout.BeginHorizontal();
-            if(showUse) UseHeight = EditorGUILayout.Toggle(UseHeight, GUILayout.Width(20));
-            EditorGUI.BeginDisabledGroup(!UseHeight);
-                EditorGUILayout.PrefixLabel("Height:");
-                Height = EditorGUILayout.FloatField(Height, GUILayout.ExpandWidth(true));
-            EditorGUI.EndDisabledGroup();
-        GUILayout.EndHorizontal();
+            Density = EditorGUILayout.Slider("Grass Density", Density, .01f, 5f);
+            NormalLimit = EditorGUILayout.Slider("Normal Limit", NormalLimit, 1f, 180f);
+        }
 
-        GUILayout.Space(10);
+        public void RenderGrassGUI (bool showUse)
+        {
+            GUILayout.Label("Grass Properties:");
 
-        GUILayout.BeginHorizontal();
-            if(showUse) UseColor = EditorGUILayout.Toggle(UseColor, GUILayout.Width(20));
-            EditorGUI.BeginDisabledGroup(!UseColor);
-                EditorGUILayout.PrefixLabel("Color:");
-                Color = EditorGUILayout.ColorField(Color, GUILayout.ExpandWidth(true));
-            EditorGUI.EndDisabledGroup();
-        GUILayout.EndHorizontal();
+            EditorGUIUtility.labelWidth = 100;
+            GUILayout.BeginHorizontal();
+                if(showUse) UseHeight = EditorGUILayout.Toggle(UseHeight, GUILayout.Width(20));
+                EditorGUI.BeginDisabledGroup(!UseHeight);
+                    EditorGUILayout.PrefixLabel("Height:");
+                    Height = EditorGUILayout.FloatField(Height, GUILayout.ExpandWidth(true));
+                EditorGUI.EndDisabledGroup();
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+
+            GUILayout.BeginHorizontal();
+                if(showUse) UseColor = EditorGUILayout.Toggle(UseColor, GUILayout.Width(20));
+                EditorGUI.BeginDisabledGroup(!UseColor);
+                    EditorGUILayout.PrefixLabel("Color:");
+                    Color = EditorGUILayout.ColorField(Color, GUILayout.ExpandWidth(true));
+                EditorGUI.EndDisabledGroup();
+            GUILayout.EndHorizontal();
+        }
     }
 }

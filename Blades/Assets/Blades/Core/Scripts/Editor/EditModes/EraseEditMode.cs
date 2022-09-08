@@ -1,54 +1,53 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 
-public class EraseEditMode : EditMode
+namespace Blades.UnityEditor
 {
-    public EraseEditMode (GrassManager manager, string name) : base(manager, name) 
+    public class EraseEditMode : EditMode
     {
-        properties = new(manager);
-    }
+        public EraseEditMode (GrassManager manager, string name) : base(manager, name) {}
 
-    GrassProperties properties;
-
-    public override void OnGUI()
-    {
-        properties.RenderBrushGUI();
-
-        if(GUILayout.Button("Erase All?")) EraseAll();
-    }
-
-    public override void OnUse(bool interacting)
-    {
-        RaycastHit hit = Brush(properties.BrushSize) ?? new();
-        if(hit.collider is null || !interacting) return;
-
-        GrassType type = Manager.TypeCollection.GrassTypes[properties.Type];
-
-        foreach (var blade in type.Collection.ToArray())
+        public override void OnGUI()
         {
-            Erase(type, blade, hit.point);
+            Properties.RenderBrushGUI();
+
+            if(GUILayout.Button("Erase All?")) EraseAll();
+        }
+        
+        public override void OnUse(bool interacting)
+        {
+            RaycastHit? hit = Brush();
+            if(hit is null || !interacting) return;
+            
+            foreach (var blade in Type.Collection.ToArray())
+            {
+                Erase(blade, hit.Value.point);
+            }
+
+            Type.Reload();
         }
 
-        type.Reload();
-    }
+        public void Erase (GrassBlade blade, Vector3 hitPoint)
+        {
+            float distanceFromOuterCircle = DistanceFromCircle(blade.Position, hitPoint, Properties.BrushSize.y);
+            if (distanceFromOuterCircle > 0) return;
 
-    public void Erase (GrassType type, GrassBlade blade, Vector3 hitPoint)
-    {
-        float distanceFromOuterCircle = DistanceFromCircle(blade.Position, hitPoint, properties.BrushSize.y);
-        float distanceFromInnerCircle = DistanceFromCircle(blade.Position, hitPoint, properties.BrushSize.x);
-        
-        float ratio = Mathf.Abs((distanceFromInnerCircle / (properties.BrushSize.y - properties.BrushSize.x)) - 1);
-        if (distanceFromOuterCircle > 0 || ratio < Random.Range(0f, 1f)) return;
-        type.Collection.Remove(blade);
-        return;
-    }
+            float distanceFromInnerCircle = DistanceFromCircle(blade.Position, hitPoint, Properties.BrushSize.x);
+            
+            float ratio = Mathf.Abs((distanceFromInnerCircle / (Properties.BrushSize.y - Properties.BrushSize.x)) - 1);
+            if(ratio < Random.Range(0f, 1f)) return;
 
-    public void EraseAll ()
-    {
-        GrassType type = Manager.TypeCollection.GrassTypes[properties.Type];
-        
-        type.Collection.Clear();
+            Type.Collection.Remove(blade);
+            return;
+        }
+
+        public void EraseAll ()
+        {
+            Type.Collection.Clear();
+        }
+
+        public override void OnUseEnd () 
+        {
+            Type.Collection.PushUndo();
+        }
     }
 }

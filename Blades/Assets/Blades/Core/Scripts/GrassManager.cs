@@ -1,116 +1,122 @@
-using System.Collections;
-using System.Collections.Generic;
+using Blades.Interaction;
+using Blades.Rendering;
 using UnityEngine;
 
-[ExecuteAlways]
-public class GrassManager : MonoBehaviour
+namespace Blades
 {
-    public static InteractorManager InteractorManager { get; } = new();
-
-    [SerializeField] int ignoreRate;
-    [SerializeField] ComputeShader cullingShader;
-    [SerializeField] GrassTypeCollection grassTypeCollection;
-
-    #if UNITY_EDITOR
-    [SerializeField] [HideInInspector] public GrassSceneSettings sceneSettings;
-    #endif
-
-    ComputeBuffer interactionBuffer;
-
-    Camera mainCamera;
-
-    int updateRate = 5;
-    float viewDistance = 150;
-
-    float previousFOV;
-    float cameraHalfDiagonalFovDotProduct;
-
-    public void ChangeCamera (Camera newCamera) 
+    [ExecuteAlways]
+    public class GrassManager : MonoBehaviour
     {
-        mainCamera = newCamera;
-    }
+        public static InteractorManager InteractorManager { get; } = new();
 
-    public void ChangeUpdateRate (int newUpdateRate) 
-    {
-        updateRate = newUpdateRate;
-    }
+        [SerializeField] int ignoreRate;
+        [SerializeField] ComputeShader cullingShader;
+        [SerializeField] GrassTypeCollection grassTypeCollection;
 
-    public void ChangeViewDistance (float newViewDistance) 
-    {
-        viewDistance = newViewDistance;
-    }
+        #if UNITY_EDITOR
+        [SerializeField] [HideInInspector] public GrassSceneSettings sceneSettings;
+        #endif
 
-    public GrassTypeCollection TypeCollection => grassTypeCollection;
+        ComputeBuffer interactionBuffer;
 
-    void OnEnable ()
-    {
-        //Create the interactionBuffer with a max of 32 interactors.
-        interactionBuffer = new(32, sizeof(float) * 3, ComputeBufferType.Append);
+        Camera mainCamera;
 
-        //Load all buffers for every grass type
-        grassTypeCollection.LoadAllBuffers(cullingShader);
-    
-        mainCamera = Camera.main;
-    }
+        int updateRate = 5;
+        float viewDistance = 150;
 
-    void Update ()
-    {
-        SlowUpdate();
+        float previousFOV;
+        float cameraHalfDiagonalFovDotProduct;
 
-        grassTypeCollection.Render();
-    }
+        public void ChangeCamera (Camera newCamera) 
+        {
+            mainCamera = newCamera;
+        }
 
-    void SlowUpdate ()
-    {
-        if(Time.frameCount % updateRate != 0) return;
+        public void ChangeUpdateRate (int newUpdateRate) 
+        {
+            updateRate = newUpdateRate;
+        }
 
-        UpdateFOV();
+        public void ChangeViewDistance (float newViewDistance) 
+        {
+            viewDistance = newViewDistance;
+        }
 
-        //Update the interactionBuffer, and push this to our grass materials
-        interactionBuffer.SetData(InteractorManager.Get());
-        grassTypeCollection.SetMaterialBuffer("_interactionBuffer", interactionBuffer);
-        grassTypeCollection.SetMaterialInt("_interactorCount", InteractorManager.Length);
+        public GrassTypeCollection TypeCollection => grassTypeCollection;
+
+        void OnEnable ()
+        {
+            //Create the interactionBuffer with a max of 32 interactors.
+            interactionBuffer = new(32, sizeof(float) * 3, ComputeBufferType.Append);
+
+            //Load all buffers for every grass type
+            grassTypeCollection.LoadAllBuffers(cullingShader);
         
-        grassTypeCollection.Cull(mainCamera.transform, viewDistance, cameraHalfDiagonalFovDotProduct, ignoreRate);
+            mainCamera = Camera.main;
+        }
+
+        void Update ()
+        {
+            SlowUpdate();
+
+            grassTypeCollection.Render();
+        }
+
+        void SlowUpdate ()
+        {
+            if(Time.frameCount % updateRate != 0) return;
+
+            UpdateFOV();
+
+            //Update the interactionBuffer, and push this to our grass materials
+            interactionBuffer.SetData(InteractorManager.Get());
+            if(interactionBuffer.IsValid() && interactionBuffer.count > 0)
+            {
+                grassTypeCollection.SetMaterialBuffer("_interactionBuffer", interactionBuffer);
+                grassTypeCollection.SetMaterialInt("_interactorCount", InteractorManager.Length);
+            }
+            
+            grassTypeCollection.Cull(mainCamera.transform, viewDistance, cameraHalfDiagonalFovDotProduct, ignoreRate);
+        }
+
+        void UpdateFOV () 
+        {
+            if (mainCamera.fieldOfView == previousFOV) return;
+            
+            previousFOV = mainCamera.fieldOfView;
+            cameraHalfDiagonalFovDotProduct = GetCameraHalfDiagonalFovDotProduct(mainCamera);
+        }
+
+        void OnDisable ()
+        {
+            Release();
+        }
+
+        void Release()
+        {
+            //Manually release all buffers to prevent warnings.
+            grassTypeCollection.Release();
+            interactionBuffer.Release();
+        }
+
+        public static float GetCameraHalfDiagonalFovDotProduct(Camera cam)
+        {
+            float ratio = (float)Screen.width / Screen.height;
+            float camVerticalFov = cam.fieldOfView * Mathf.Deg2Rad;
+            float camFarDistance = cam.farClipPlane;
+            float camFarHeight = camFarDistance * Mathf.Tan(camVerticalFov * 0.5f) * 2;
+            float camFarWidth = camFarHeight * (ratio + 2);
+            float camFarDiagonal = Mathf.Sqrt(camFarHeight * camFarHeight + camFarWidth * camFarWidth);
+            float camFarDiagonalHalf = camFarDiagonal * 0.5f;
+            float camHypotenuse = Mathf.Sqrt(camFarDistance * camFarDistance + camFarDiagonalHalf * camFarDiagonalHalf);
+            float cosHalfCamDiagonalFov = camFarDistance / camHypotenuse;
+            return cosHalfCamDiagonalFov;
+        }
     }
 
-    void UpdateFOV () 
+    [System.Serializable]
+    public struct GrassSceneSettings
     {
-        if (mainCamera.fieldOfView == previousFOV) return;
-        
-        previousFOV = mainCamera.fieldOfView;
-        cameraHalfDiagonalFovDotProduct = GetCameraHalfDiagonalFovDotProduct(mainCamera);
+        public float ViewDistance;
     }
-
-    void OnDisable ()
-    {
-        Release();
-    }
-
-    void Release()
-    {
-        //Manually release all buffers to prevent warnings.
-        grassTypeCollection.Release();
-        interactionBuffer.Release();
-    }
-
-    public static float GetCameraHalfDiagonalFovDotProduct(Camera cam)
-    {
-        float ratio = (float)Screen.width / Screen.height;
-        float camVerticalFov = cam.fieldOfView * Mathf.Deg2Rad;
-        float camFarDistance = cam.farClipPlane;
-        float camFarHeight = camFarDistance * Mathf.Tan(camVerticalFov * 0.5f) * 2;
-        float camFarWidth = camFarHeight * (ratio + 2);
-        float camFarDiagonal = Mathf.Sqrt(camFarHeight * camFarHeight + camFarWidth * camFarWidth);
-        float camFarDiagonalHalf = camFarDiagonal * 0.5f;
-        float camHypotenuse = Mathf.Sqrt(camFarDistance * camFarDistance + camFarDiagonalHalf * camFarDiagonalHalf);
-        float cosHalfCamDiagonalFov = camFarDistance / camHypotenuse;
-        return cosHalfCamDiagonalFov;
-    }
-}
-
-[System.Serializable]
-public struct GrassSceneSettings
-{
-    public float ViewDistance;
 }
