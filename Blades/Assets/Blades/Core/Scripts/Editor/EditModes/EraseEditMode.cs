@@ -15,6 +15,8 @@ public class EraseEditMode : EditMode
     public override void OnGUI()
     {
         properties.RenderBrushGUI();
+
+        if(GUILayout.Button("Erase All?")) EraseAll();
     }
 
     public override void OnUse(bool interacting)
@@ -32,12 +34,21 @@ public class EraseEditMode : EditMode
         type.Reload();
     }
 
-    public Task Erase (GrassType type, GrassBlade blade, Vector3 hitPoint)
+    public void Erase (GrassType type, GrassBlade blade, Vector3 hitPoint)
     {
         float distanceFromOuterCircle = DistanceFromCircle(blade.Position, hitPoint, properties.BrushSize.y);
-        float ratio = properties.BrushSize.x / Mathf.Abs(distanceFromOuterCircle) * 100;
-        if (distanceFromOuterCircle > 0 || ratio < Random.Range(0f, 100f)) return Task.CompletedTask;
+        float distanceFromInnerCircle = DistanceFromCircle(blade.Position, hitPoint, properties.BrushSize.x);
+        
+        float ratio = Mathf.Abs((distanceFromInnerCircle / (properties.BrushSize.y - properties.BrushSize.x)) - 1);
+        if (distanceFromOuterCircle > 0 || ratio < Random.Range(0f, 1f)) return;
         type.Collection.Remove(blade);
-        return Task.CompletedTask;
+        return;
+    }
+
+    public void EraseAll ()
+    {
+        GrassType type = Manager.TypeCollection.GrassTypes[properties.Type];
+        
+        type.Collection.Clear();
     }
 }

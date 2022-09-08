@@ -29,7 +29,7 @@ public class GrassTypeCollection
     {
         foreach (var type in grassTypes)
         {
-            type.MaterialInstance.SetBuffer(bufferName, buffer);
+            type.UpdateMaterialBuffer(bufferName, buffer);
         }
     }
 
@@ -37,7 +37,7 @@ public class GrassTypeCollection
     {
         foreach (var type in grassTypes)
         {
-            type.MaterialInstance.SetInt(bufferName, integer);
+            if(type.MaterialInstance is not null) type.MaterialInstance.SetInt(bufferName, integer);
         }
     }
 
@@ -77,7 +77,14 @@ public class GrassType
 
     uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
 
-    bool execute => Collection.Count > 0 && grassBuffer is not null;
+    bool execute
+    {
+        get
+        {   bool result = Collection.Count > 0 && grassBuffer is not null && MaterialInstance is not null;
+            if(!result) LoadGrassBuffer(cullingShader);
+            return result;
+        }
+    }
 
     public void LoadGrassBuffer (ComputeShader shader)
     {
@@ -98,6 +105,7 @@ public class GrassType
         cullingShader.GetKernelThreadGroupSizes(kernel, out threadX, out _, out _);
 
         MaterialInstance = Object.Instantiate(TypeAsset.Material);
+        if(TypeAsset.Texture is not null) MaterialInstance.SetTexture("_MainTex", TypeAsset.Texture);
     }
 
     public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate) 
@@ -148,5 +156,16 @@ public class GrassType
     {
         Release();
         LoadGrassBuffer(cullingShader);
+    }
+
+    public void UpdateMaterialBuffer (string bufferName, ComputeBuffer buffer) 
+    {
+        if(MaterialInstance is null)
+        {
+            LoadGrassBuffer(cullingShader);
+            return;
+        }
+
+        MaterialInstance.SetBuffer(bufferName, buffer);
     }
 }

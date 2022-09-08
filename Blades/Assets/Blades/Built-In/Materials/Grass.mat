@@ -136,8 +136,8 @@ Material:
     - _NormalIntensity: 0.5
     - _OcclusionStrength: 1
     - _Parallax: 0.005
-    - _PushRadius: 1.5
-    - _PushStrength: 2
+    - _PushRadius: 2
+    - _PushStrength: 2.5
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1

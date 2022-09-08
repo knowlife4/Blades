@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.Linq;
 
 [CustomEditor(typeof(GrassManager))]
 public class GrassManagerEditor : Editor
@@ -14,7 +15,9 @@ public class GrassManagerEditor : Editor
         modeSelector = new
         (
             new PaintEditMode(manager, "Paint"),
-            new EraseEditMode(manager, "Erase")
+            new EraseEditMode(manager, "Erase"),
+            new UpdateEditMode(manager, "Update"),
+            new FloodEditMode(manager, "Flood")
         );
     }
 
@@ -40,8 +43,11 @@ public class GrassManagerEditor : Editor
         SceneView lastScene = SceneView.lastActiveSceneView;
         if(lastScene is null) return;
 
-        manager.ChangeCamera(lastScene.camera);
-        manager.ChangeUpdateRate(1);
+        if(!Application.isPlaying)
+        {
+            manager.ChangeCamera(lastScene.camera);
+            manager.ChangeUpdateRate(1);
+        }
 
         modeSelector.RenderGUI();
 
@@ -88,7 +94,7 @@ public class GrassProperties
         EditorGUILayout.MinMaxSlider("Brush Size", ref brushSize.x, ref brushSize.y, .25f, 5f);
         BrushSize = brushSize;
 
-        Density = EditorGUILayout.Slider("Grass Density", Density, .01f, 1f);
+        Density = EditorGUILayout.Slider("Grass Density", Density, .01f, 5f);
     }
 
     public void RenderGrassGUI (bool showUse)

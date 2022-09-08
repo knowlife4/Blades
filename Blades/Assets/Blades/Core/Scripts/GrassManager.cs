@@ -19,8 +19,8 @@ public class GrassManager : MonoBehaviour
 
     Camera mainCamera;
 
-    int updateRate = 3;
-    float viewDistance = 50;
+    int updateRate = 5;
+    float viewDistance = 150;
 
     float previousFOV;
     float cameraHalfDiagonalFovDotProduct;

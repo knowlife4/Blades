@@ -37,17 +37,30 @@ public class GrassDataCollection : ScriptableObject
 
         return bladesArray;
     }
+
+    public void Replace (GrassBlade oldBlade, GrassBlade newBlade)
+    {
+        Remove(oldBlade);
+        Add(newBlade);
+    }
+
+    public void Clear ()
+    {
+        tempBlades.Clear();
+    }
 }
 
 [System.Serializable]
 public struct GrassBlade
 {
-    public GrassBlade (Vector3 position, Quaternion rotation, Color color, float height = 1)
+    public GrassBlade (Vector3 position, Quaternion rotation, Color color, float height = 1) : this(position, Matrix4x4.Rotate(rotation), new Vector3(color.r, color.g, color.b), height) {}
+
+    public GrassBlade (Vector3 position, Matrix4x4 rotation, Vector3 color, float height = 1)
     {
         Position = position;
         Height = height;
-        Color = new Vector3(color.r, color.g, color.b);
-        Rotation = Matrix4x4.Rotate(rotation);
+        Color = color;
+        Rotation = rotation;
     }
 
     public Vector3 Position;

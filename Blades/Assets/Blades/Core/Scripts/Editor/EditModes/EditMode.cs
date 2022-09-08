@@ -32,4 +32,35 @@ public abstract class EditMode
     {
         return (point - origin).magnitude - radius;
     }
+
+    protected GrassBlade? CreateBlade (GrassProperties properties, float yRotation, Vector3 direction, Vector3 position) 
+    {
+        Color color = properties.Color;
+
+        Ray placementRay = new(position -direction, direction);
+        if (!Physics.Raycast(placementRay, out RaycastHit raycastHit)) return null;
+
+        if(!properties.UseColor)
+        {
+            Transform root = raycastHit.collider.transform.root;
+            Renderer renderer = root.GetComponentInChildren<Renderer>();
+
+            Texture2D texture2D = renderer.sharedMaterial.mainTexture as Texture2D;
+
+            if(texture2D is not null)
+            {
+                Vector2 pCoord = raycastHit.textureCoord * new Vector2(texture2D.width, texture2D.height);
+                Vector2 tiling = renderer.sharedMaterial.mainTextureScale;
+                
+                color = texture2D.GetPixel(Mathf.FloorToInt(pCoord.x * tiling.x) , Mathf.FloorToInt(pCoord.y * tiling.y));
+            }
+        }
+
+        // TODO Add normal orientation!
+
+        Quaternion rotation = Quaternion.LookRotation(raycastHit.normal, Vector3.forward) * Quaternion.Euler(90f, 0, 0);
+        rotation *= Quaternion.Euler(0, yRotation, 0);
+
+        return new GrassBlade (raycastHit.point, rotation, color, properties.UseHeight ? properties.Height : 1);
+    }
 }

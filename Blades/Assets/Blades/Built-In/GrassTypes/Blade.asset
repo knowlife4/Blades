@@ -12,5 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5474bfc97ee076341b60109c5dc9289e, type: 3}
   m_Name: Blade
   m_EditorClassIdentifier: 
+  Texture: {fileID: 2800000, guid: 0a4e35d852f838044a16e0a0e5d38f26, type: 3}
   Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   Material: {fileID: 2100000, guid: abb1a165176cbb546a9670ccf56d832d, type: 2}
