@@ -25,12 +25,12 @@ void Cull (uint3 id : SV_DispatchThreadID)
 
     BladesInstance blade = _bladeBuffer[identifier];
 
-    float forward = dot(normalize(blade.Position - _cameraPosition.xyz), _cameraForward.xyz);
-    if (forward < _cameraHalfDiagonalFovDotProduct) return;
+    if(identifier % _ignoreRate != 0) return;
 
     if(distance(_cameraPosition.xyz, blade.Position) > _distance) return;
 
-    if(identifier % _ignoreRate != 0) return;
+    float forward = dot(normalize(blade.Position - _cameraPosition.xyz), _cameraForward.xyz);
+    if (forward < _cameraHalfDiagonalFovDotProduct) return;
 
     _bladeBufferRender.Append(blade);
 }

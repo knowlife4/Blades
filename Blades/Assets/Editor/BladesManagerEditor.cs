@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using Blades.Rendering;
+using UnityEngine.SceneManagement;
 
 namespace Blades.UnityEditor
 {
@@ -14,13 +15,27 @@ namespace Blades.UnityEditor
         void OnEnable ()
         {
             manager = (BladesManager)target;
-            modeSelector = new
-            (
-                new PaintEditMode(manager, "Paint"),
-                new EraseEditMode(manager, "Erase"),
-                new UpdateEditMode(manager, "Update"),
-                new FloodEditMode(manager, "Flood")
-            );
+            
+            if(modeSelector == null)
+            {
+                modeSelector = new
+                (
+                    new PaintEditMode(manager, "Paint"),
+                    new EraseEditMode(manager, "Erase"),
+                    new UpdateEditMode(manager, "Update"),
+                    new FloodEditMode(manager, "Flood")
+                );
+            }
+
+            SceneManager.activeSceneChanged += ChangedActiveScene;
+        }
+
+        void ChangedActiveScene(Scene current, Scene next)
+        {
+            foreach (var type in manager.BladesTypeCollection.BladesTypes)
+            {
+                type.Collection.Save();
+            }
         }
 
         void OnSceneGUI () 

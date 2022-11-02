@@ -29,7 +29,16 @@ public class ColorCast
         }
     }
 
-    static Texture2D returnTex = new(1, 1);
+    private static Texture2D returnTex;
+
+    public static Texture2D ReturnTex 
+    {
+        get
+        {
+            if(returnTex == null) returnTex = new(1, 1);
+            return returnTex;
+        }
+    }
 
     public static ColorCastHit SimpleRay(ColorCastInput input)
     {
@@ -53,12 +62,12 @@ public class ColorCast
 
         Camera.SetupCurrent(previousCamera);
 
-        returnTex.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
-        returnTex.Apply();
+        ReturnTex.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
+        ReturnTex.Apply();
 
         RenderTexture.active = previousRT;
         
-        return new(returnTex.GetPixel(0, 0));
+        return new(ReturnTex.GetPixel(0, 0));
     }
 
     public static ColorCastHit Ray(ColorCastInput input, Vector3 up)
@@ -76,7 +85,7 @@ public class ColorCast
 
         cb.SetRenderTarget(CastTexture);
 
-        var proj = Matrix4x4.Ortho(-.01f, .01f, -.01f, .01f, -1, 100);
+        var proj = Matrix4x4.Ortho(-.001f, .001f, -.001f, .001f, -1, 100);
 
         var view = Matrix4x4.LookAt(input.Ray.origin, input.Ray.origin + input.Ray.direction, up);
 
@@ -90,12 +99,12 @@ public class ColorCast
 
         Graphics.ExecuteCommandBuffer(cb);
 
-        returnTex.ReadPixels(new Rect(0, 0, CastTexture.width, CastTexture.height), 0, 0);
-        returnTex.Apply();
+        ReturnTex.ReadPixels(new Rect(0, 0, CastTexture.width, CastTexture.height), 0, 0);
+        ReturnTex.Apply();
 
         RenderTexture.active = previousRT;
 
-        return returnTex;
+        return ReturnTex;
     }
 
     public struct ColorCastHit

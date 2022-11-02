@@ -18,13 +18,16 @@ namespace Blades.UnityEditor
 
         readonly string[] editNames;
         
-        public int Selected { get; private set; }
+        public static int Selected { get; private set; }
+
+        EditMode selectedMode;
 
         public Vector2 BrushSize { get; private set; }
 
         public void Use (bool interacting)
         {
             EditModes[Selected].Use(interacting);
+            Debug.Log(Selected);
         }
 
         public void UseStart () 
@@ -41,19 +44,21 @@ namespace Blades.UnityEditor
         {
             Selected = GUILayout.Toolbar(Selected, editNames);
 
-            EditModes[Selected].GUI();
+            selectedMode = EditModes[Selected];
+
+            selectedMode.GUI();
         }
 
         public void AddBrushSize (float scale)
         {
-            Selected = GUILayout.Toolbar(Selected, editNames);
+            //Selected = GUILayout.Toolbar(Selected, editNames);
 
             EditModes[Selected].AddBrushSize(scale);
         }
 
         public void AddBrushHardness (float scale)
         {
-            Selected = GUILayout.Toolbar(Selected, editNames);
+            //Selected = GUILayout.Toolbar(Selected, editNames);
 
             EditModes[Selected].AddBrushHardness(scale);
         }

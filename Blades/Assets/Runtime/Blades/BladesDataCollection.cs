@@ -26,12 +26,12 @@ namespace Blades
 
         void OnEnable ()
         {
-            if(blades is not null) tempBlades = new(blades);
+            Load();
         }
 
         void OnDisable ()
         {
-            blades = ToArray();
+            Save();
         }
 
         public void Add (BladesInstance blade)
@@ -88,6 +88,16 @@ namespace Blades
             LastUpdated = this;
             currentUndo = 0;
             previous.Insert(0, ToArray());
+        }
+
+        public void Save ()
+        {
+            blades = ToArray();
+        }
+
+        public void Load ()
+        {
+            if(blades is not null) tempBlades = new(blades);
         }
     }
 

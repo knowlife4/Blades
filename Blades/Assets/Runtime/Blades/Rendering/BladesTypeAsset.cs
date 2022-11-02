@@ -9,6 +9,7 @@ namespace Blades.Rendering
     {
         public Texture2D Texture;
         public Mesh Mesh;
+        public float scale = 1;
         public Material Material;
     }
 }
