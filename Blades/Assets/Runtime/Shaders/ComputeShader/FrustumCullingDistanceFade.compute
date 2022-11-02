@@ -1,0 +1,40 @@
+#pragma kernel Cull
+
+struct BladesInstance
+{
+    float3 Position;
+    float4x4 Rotation;
+    float Height;
+    float3 Color;
+};
+
+StructuredBuffer<BladesInstance> _bladeBuffer;
+AppendStructuredBuffer<BladesInstance> _bladeBufferRender;
+
+float _distance;
+float4 _cameraPosition;
+float4 _cameraForward;
+float _cameraHalfDiagonalFovDotProduct;
+int _ignoreRate;
+
+[numthreads(16,1,1)]
+void Cull (uint3 id : SV_DispatchThreadID)
+{
+    uint identifier = id.x;
+    if(identifier > _bladeBuffer.Length) return;
+
+    BladesInstance blade = _bladeBuffer[identifier];
+
+    if(identifier % (pow(_ignoreRate - 1, 3) + 1) != 0) return;
+
+    float bladeDistance = distance(_cameraPosition.xyz, blade.Position);
+    if(bladeDistance > _distance) return;
+    
+    float distanceFromQuarter = clamp(bladeDistance - (_distance * .25), 0, _distance);
+    if(identifier % pow(ceil((distanceFromQuarter / _distance) * 4), 2) != 0) return;
+
+    float forward = dot(normalize(blade.Position - _cameraPosition.xyz), _cameraForward.xyz);
+    if (forward < _cameraHalfDiagonalFovDotProduct) return;
+
+    _bladeBufferRender.Append(blade);
+}

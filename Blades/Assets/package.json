@@ -1,0 +1,21 @@
+{
+    "name": "com.slice.blades",
+    "version": "0.1.0",
+    "displayName": "Blades- Interactive GPU Details",
+    "description": "TODO",
+    "unity": "2021.2",
+    "unityRelease": "12f1",
+    "author": 
+    {
+        "name": "SLICE Interactive",
+        "email": "slice.interactive.games@gmail.com"
+    },
+    "samples": 
+    [
+        {
+            "displayName": "Example",
+            "description": "TODO",
+            "path": "Samples/Example"
+        }
+    ]
+}
