@@ -7,8 +7,16 @@ namespace Blades
     [ExecuteAlways]
     public class BladesManager : MonoBehaviour
     {
-        static readonly InteractorManager interactorManager;
-        public static InteractorManager InteractorManager => interactorManager ?? new();
+        static InteractorManager interactorManager;
+        public static InteractorManager InteractorManager 
+        { 
+            get 
+            {
+                if(interactorManager == null) interactorManager = new();
+
+                return interactorManager;
+            }
+        }
 
         [SerializeField] int ignoreRate;
         [SerializeField] ComputeShader cullingShader;

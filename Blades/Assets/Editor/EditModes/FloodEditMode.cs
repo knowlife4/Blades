@@ -38,7 +38,7 @@ namespace Blades.UnityEditor
                         Vector3 scatter = new Vector3(Random.Range(-density, density), 0, Random.Range(-density, density));
                         Vector3 bladePosition = hit.point + scatter;
 
-                        if(Physics.OverlapSphere(bladePosition + new Vector3(0, .6f, 0), .5f).Length > 1) continue;
+                        if(Physics.OverlapSphere(bladePosition + new Vector3(0, .5f, 0), .75f, Properties.Layers).Length > 1) continue;
                         
                         BladesInstance? blade = CreateSafeBlade(collider, hit.normal, bladePosition);
 
