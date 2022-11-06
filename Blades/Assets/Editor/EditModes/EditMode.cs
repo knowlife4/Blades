@@ -36,7 +36,7 @@ namespace Blades.UnityEditor
         public RaycastHit? Brush ()
         {
             Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-            if (!Physics.Raycast(ray, out RaycastHit hit)) return null;
+            if (!Physics.Raycast(ray, out RaycastHit hit, 500f, Properties.Layers)) return null;
 
             if(Vector3.Angle(Vector3.up, hit.normal) > Properties.NormalLimit) return null;
 

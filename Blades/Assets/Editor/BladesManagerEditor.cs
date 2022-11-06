@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using Blades.Rendering;
 using UnityEngine.SceneManagement;
+using UnityEditorInternal;
 
 namespace Blades.UnityEditor
 {
@@ -134,6 +135,8 @@ namespace Blades.UnityEditor
 
         public float NormalLimit { get; set; } = 180;
 
+        public int Layers { get; set; } = ~0;
+
         public bool UseHeight { get; set; }
         public float Height { get; set; }
 
@@ -160,6 +163,7 @@ namespace Blades.UnityEditor
 
             Density = EditorGUILayout.Slider("Brush Density", Density, .01f, 5f);
             NormalLimit = EditorGUILayout.Slider("Brush Limit", NormalLimit, 1f, 180f);
+            Layers = EditorGUILayout.MaskField("Paint Layers", Layers, InternalEditorUtility.layers);
         }
 
         public void RenderBladesGUI (bool showUse)
