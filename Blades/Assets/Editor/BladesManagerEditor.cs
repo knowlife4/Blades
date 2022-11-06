@@ -26,16 +26,6 @@ namespace Blades.UnityEditor
                     new FloodEditMode(manager, "Flood")
                 );
             }
-
-            SceneManager.activeSceneChanged += ChangedActiveScene;
-        }
-
-        void ChangedActiveScene(Scene current, Scene next)
-        {
-            foreach (var type in manager.BladesTypeCollection.BladesTypes)
-            {
-                type.Collection.Save();
-            }
         }
 
         void OnSceneGUI () 
@@ -74,6 +64,14 @@ namespace Blades.UnityEditor
             
             manager.sceneSettings.ViewDistance = EditorGUILayout.FloatField("View Distance", manager.sceneSettings.ViewDistance);
             manager.ChangeViewDistance(manager.sceneSettings.ViewDistance);
+
+            if(GUILayout.Button("Save"))
+            {
+                foreach (var type in manager.BladesTypeCollection.BladesTypes)
+                {
+                    type.Collection.Save();
+                }
+            }
 
             UndoRedo();
 

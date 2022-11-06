@@ -93,6 +93,12 @@ namespace Blades
         public void Save ()
         {
             blades = ToArray();
+
+            //! GET RID OF THIS FOR THE LOVE OF GOD AND ALL THAT IS HOLY
+            #if UNITY_EDITOR
+                UnityEditor.EditorUtility.SetDirty(this);
+                UnityEditor.AssetDatabase.SaveAssets();
+            #endif
         }
 
         public void Load ()
