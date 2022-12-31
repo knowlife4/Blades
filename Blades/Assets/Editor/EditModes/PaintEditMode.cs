@@ -41,7 +41,7 @@ namespace Blades.UnityEditor
                     float ratio = Mathf.Abs((distanceFromInnerCircle / (Properties.BrushSize.y - Properties.BrushSize.x)) - 1);
                     if (distanceFromOuterCircle > 0 || ratio < Random.Range(0f, 1f)) continue;
 
-                    BladesInstance? blade = CreateSafeBlade(collider, hitNormal, finalPoint);
+                    BladesInstance? blade = CreateSafeBlade(hitNormal, finalPoint);
 
                     if(blade is not null && Type.Collection is not null) Type.Collection.Add(blade.Value);
                 }

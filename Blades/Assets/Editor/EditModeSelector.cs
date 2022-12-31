@@ -27,7 +27,6 @@ namespace Blades.UnityEditor
         public void Use (bool interacting)
         {
             EditModes[Selected].Use(interacting);
-            Debug.Log(Selected);
         }
 
         public void UseStart () 

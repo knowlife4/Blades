@@ -1,0 +1,50 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel DepthCalc
+
+Texture2D<float> DepthTexture;
+
+float farPlane;
+
+float nearPlane;
+
+float4x4 cameraInvProjection;
+
+RWStructuredBuffer<float4> depth;
+
+float3 viewSpacePosAtScreenUV(float2 uv, float depthValue)
+{
+    float3 viewSpaceRay = mul(cameraInvProjection, float4(uv * 2.0 - 1.0, 1.0, 1.0) * farPlane).xyz;
+    return viewSpaceRay * depthValue;
+}
+
+half3 viewNormalAtPixelPosition(float2 vpos, float depthValue)
+{
+    // get current pixel's view space position
+    half3 viewSpacePos_c = viewSpacePosAtScreenUV(vpos + float2( 0.0, 0.0), depthValue);
+
+    // get view space position at 1 pixel offsets in each major direction
+    half3 viewSpacePos_r = viewSpacePosAtScreenUV(vpos + float2( 1.0, 0.0), depthValue);
+    half3 viewSpacePos_u = viewSpacePosAtScreenUV(vpos + float2( 0.0, 1.0), depthValue);
+
+    // get the difference between the current and each offset position
+    half3 hDeriv = viewSpacePos_r - viewSpacePos_c;
+    half3 vDeriv = viewSpacePos_u - viewSpacePos_c;
+
+    // get view space normal from the cross product of the diffs
+    half3 viewNormal = normalize(cross(hDeriv, vDeriv));
+
+    return viewNormal;
+}
+
+[numthreads(32, 32, 1)]
+void DepthCalc (uint3 id : SV_DispatchThreadID)
+{   
+    uint2 pos = id.xy;
+
+    float depthSample = DepthTexture[pos];
+
+    float final = lerp(1, 0, depthSample) * farPlane;
+    half3 normal = viewNormalAtPixelPosition(pos, final);
+
+    if(pos.x == 255 && pos.y == 255) depth[0] = float4(normal, final < farPlane ? final : 0);
+}

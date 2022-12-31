@@ -5,93 +5,113 @@ using UnityEngine.Rendering;
 
 public class ColorCast
 {
-    private static Camera castCamera;
+    private static MeshRenderer[] rendererCache;
 
-    public static Camera CastCamera
-    { 
-        get
-        {
-            if(castCamera == null) castCamera = CreateCastCamera();
-            return castCamera;
-        }
+    private static RenderTexture castRenderTexture;
 
-        set => castCamera = value;
-    }
-
-    private static RenderTexture castTexture;
-
-    public static RenderTexture CastTexture 
+    public static RenderTexture CastRenderTexture 
     {
         get
         {
-            if(castTexture == null) castTexture = new(256, 256, 1, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            if(castRenderTexture == null) castRenderTexture = new(256, 256, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            return castRenderTexture;
+        }
+    }
+
+    private static Texture2D castTexture;
+
+    public static Texture2D CastTexture
+    {
+        get
+        {
+            if(castTexture == null) castTexture = new(256, 256);
             return castTexture;
         }
     }
 
-    private static Texture2D returnTex;
+    private static RenderTexture depthRenderTexture;
 
-    public static Texture2D ReturnTex 
+    public static RenderTexture DepthRenderTexture 
     {
         get
         {
-            if(returnTex == null) returnTex = new(1, 1);
-            return returnTex;
+            if(depthRenderTexture == null) depthRenderTexture = new(256, 256, 32, RenderTextureFormat.Depth);
+            return depthRenderTexture;
         }
     }
 
-    public static ColorCastHit SimpleRay(ColorCastInput input)
+    private static RenderTexture depthNormalRenderTexture;
+
+    public static RenderTexture DepthNormalRenderTexture 
     {
-        RenderTexture previousRT = RenderTexture.active;
-
-        Graphics.SetRenderTarget(CastTexture);
-
-        Camera previousCamera =  Camera.current;
-        Camera.SetupCurrent(null);
-        GL.Clear(true, true, Color.black);
-        GL.PushMatrix();
-        
-        GL.LoadOrtho();
-        
-        if(input.Material.SetPass(0))
+        get
         {
-            Graphics.DrawMeshNow(input.Mesh, Matrix4x4.TRS(input.Transform.position + input.Ray.origin, input.Transform.rotation, input.Transform.localScale));
+            if(depthNormalRenderTexture == null) depthNormalRenderTexture = new(256, 256, 0, RenderTextureFormat.ARGB32);
+            return depthNormalRenderTexture;
+        }
+    }
+
+    private static Texture2D depthTexture;
+
+    public static Texture2D DepthTexture
+    {
+        get
+        {
+            if(depthTexture == null) depthTexture = new(256, 256, TextureFormat.R16, false);
+            return depthTexture;
+        }
+    }
+
+    public static bool Ray (Ray ray, Vector3 up, out RenderRaycastOut? rayOut)
+    {
+        rendererCache = Object.FindObjectsOfType<MeshRenderer>();
+
+        rayOut = null;
+
+        foreach (var renderer in rendererCache)
+        {
+            if(!renderer.bounds.IntersectRay(ray)) continue;
+
+            MeshFilter filter = renderer.GetComponent<MeshFilter>();
+
+            var (color, depth) = GetRayTexture(new ColorCastInput(ray, filter, renderer, 100f), up);
+
+            float depthWorld = depth.w;
+
+            Vector3 hitPoint = ray.origin + (ray.direction * depthWorld);
+
+            if(depthWorld == 0) continue;
+
+            if(rayOut?.Length < depthWorld) continue;
+
+            rayOut = new(renderer, filter, color, depthWorld, hitPoint, new(depth.x, depth.y, depth.z));
+            if(rayOut != null) Debug.DrawRay(rayOut.Value.Point, rayOut.Value.Normal, rayOut.Value.Color);
         }
 
-        GL.PopMatrix();
-
-        Camera.SetupCurrent(previousCamera);
-
-        ReturnTex.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
-        ReturnTex.Apply();
-
-        RenderTexture.active = previousRT;
-        
-        return new(ReturnTex.GetPixel(0, 0));
+        return rayOut != null;
     }
 
-    public static ColorCastHit Ray(ColorCastInput input, Vector3 up)
-    {
-        return new(GetRayTexture(input, up).GetPixel(0, 0));
-    }
-
-    public static Texture2D GetRayTexture (ColorCastInput input, Vector3 up)
+    public static (Color color, Vector4 depth) GetRayTexture (ColorCastInput input, Vector3 up)
     {
         RenderTexture previousRT = RenderTexture.active;
 
-        Graphics.SetRenderTarget(CastTexture);
+        Graphics.SetRenderTarget(CastRenderTexture);
 
         CommandBuffer cb = new CommandBuffer();
 
-        cb.SetRenderTarget(CastTexture);
+        cb.SetRenderTarget(CastRenderTexture, DepthRenderTexture);
 
-        var proj = Matrix4x4.Ortho(-.001f, .001f, -.001f, .001f, -1, 100);
+        var proj = Matrix4x4.Ortho(-.1f, .1f, -.1f, .1f, .01f, input.Max);
 
         var view = Matrix4x4.LookAt(input.Ray.origin, input.Ray.origin + input.Ray.direction, up);
 
         var scaleMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, 1, -1));
 
-        cb.SetViewProjectionMatrices(scaleMatrix * view.inverse, proj);
+        var camMatrix = scaleMatrix * view.inverse;
+
+        cb.SetViewProjectionMatrices(camMatrix, proj);
+
+        var inverse = GL.GetGPUProjectionMatrix(proj, false);
 
         cb.ClearRenderTarget(true, true, Color.black);
 
@@ -99,67 +119,81 @@ public class ColorCast
 
         Graphics.ExecuteCommandBuffer(cb);
 
-        ReturnTex.ReadPixels(new Rect(0, 0, CastTexture.width, CastTexture.height), 0, 0);
-        ReturnTex.Apply();
+        CastTexture.ReadPixels(new Rect(0, 0, CastRenderTexture.width, CastRenderTexture.height), 0, 0);
+        CastTexture.Apply();
 
         RenderTexture.active = previousRT;
 
-        return ReturnTex;
+        Vector4 depth = GetDepth(inverse, input.Max, .01f);
+
+        return (CastTexture.GetPixel(0, 0), depth);
     }
 
-    public struct ColorCastHit
+    static Vector4 GetDepth (Matrix4x4 inverseCamMatrix, float farPlane, float nearPlane)
     {
-        public ColorCastHit (Color color)
+        ComputeShader depthShader = (ComputeShader)Resources.Load("Shaders/ComputeShader/ColorCastDepth");
+
+        int kernel = depthShader.FindKernel("DepthCalc");
+
+        depthShader.SetTexture(kernel, "DepthTexture", DepthRenderTexture);
+        depthShader.SetFloat("farPlane", farPlane);
+        depthShader.SetFloat("nearPlane", nearPlane);
+        depthShader.SetMatrix("cameraInvProjection", inverseCamMatrix);
+
+        ComputeBuffer buffer = new(1, sizeof(float) * 4);
+        depthShader.SetBuffer(kernel, "depth", buffer);
+
+        depthShader.Dispatch(kernel, 8, 8, 1);
+
+        Vector4[] output = new Vector4[1];
+        buffer.GetData(output);
+        buffer.Release();
+
+        Debug.Log(output[0]);
+
+        return output[0];
+    }
+
+    public struct RenderRaycastOut
+    {
+        public RenderRaycastOut(MeshRenderer renderer, MeshFilter filter, Color color, float length, Vector3 point, Vector3 normal)
         {
+            Renderer = renderer;
+            Filter = filter;
             Color = color;
+            Length = length;
+            Point = point;
+            Normal = normal;
         }
 
+        public MeshRenderer Renderer { get; }
+        public MeshFilter Filter { get; }
         public Color Color { get; }
-
-        public void Dispose ()
-        {
-            DisposeCachedElements();
-        }
+        public Vector3 Point { get; }
+        public Vector3 Normal { get; }
+        public float Length { get; }
     }
 
     public struct ColorCastInput
     {
-        public ColorCastInput (Ray ray, MeshFilter filter, MeshRenderer renderer)
+        public ColorCastInput (Ray ray, MeshFilter filter, MeshRenderer renderer, float max)
         {
             Ray = ray;
             Mesh = filter.sharedMesh;
             Material = renderer.sharedMaterial;
             Transform = renderer.transform;
+            Max = max;
         }
 
         public Ray Ray { get; }
         public Mesh Mesh { get; }
         public Material Material { get; }
         public Transform Transform { get; }
+        public float Max { get; }
     }
 
     public static void DisposeCachedElements ()
     {
-        if(CastCamera != null) Object.DestroyImmediate(CastCamera.gameObject);
-        if(CastTexture != null) Object.DestroyImmediate(CastTexture);
-    }
-
-    static void UpdateCastCamera (Vector3 position, Vector3 direction)
-    {
-        CastCamera.transform.position = position;
-        CastCamera.transform.forward = direction;
-    }
-
-    static Camera CreateCastCamera () 
-    {
-        GameObject camObj = new("castCam");
-        Camera camera = camObj.AddComponent<Camera>();
-
-        camera.orthographic = true;
-        camera.orthographicSize = .01f;
-        camera.enabled = false;
-        camera.targetTexture = CastTexture;
-
-        return camera;
+        if(CastRenderTexture != null) Object.DestroyImmediate(CastRenderTexture);
     }
 }

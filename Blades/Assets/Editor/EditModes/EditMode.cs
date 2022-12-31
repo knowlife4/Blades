@@ -36,15 +36,21 @@ namespace Blades.UnityEditor
         public RaycastHit? Brush ()
         {
             Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-            if (!Physics.Raycast(ray, out RaycastHit hit, 500f, Properties.Layers)) return null;
+
+            Camera cam = SceneView.lastActiveSceneView.camera;
+            Vector3 camUp = cam != null ? cam.transform.up : Vector3.up;
+
+            if(!ColorCast.Ray(ray, camUp, out ColorCast.RenderRaycastOut? renderHit)) return null;
+
+            if(!Physics.Raycast(ray, out RaycastHit hit, 500f, Properties.Layers)) return null;
 
             if(Vector3.Angle(Vector3.up, hit.normal) > Properties.NormalLimit) return null;
 
             Handles.color = Color.red;
-            Handles.DrawWireDisc(hit.point, hit.normal, Properties.BrushSize.x);
+            Handles.DrawWireDisc(renderHit.Value.Point, hit.normal, Properties.BrushSize.x);
 
             Handles.color = Color.white;
-            Handles.DrawWireDisc(hit.point, hit.normal, Properties.BrushSize.y);
+            Handles.DrawWireDisc(renderHit.Value.Point, hit.normal, Properties.BrushSize.y);
 
             return hit;
         }
@@ -54,24 +60,16 @@ namespace Blades.UnityEditor
             return (point - origin).magnitude - radius;
         }
 
-        protected BladesInstance? CreateSafeBlade (Collider collider, Vector3 normal, Vector3 position)
+        protected BladesInstance? CreateSafeBlade (Vector3 normal, Vector3 position)
         {
             Ray ray = new(position + (normal * .5f), -normal);
-            if(!collider.Raycast(ray, out RaycastHit hit, 2f)) return null;
-
-            MeshRenderer renderer = collider.GetComponent<MeshRenderer>();
-            if(renderer == null) renderer = collider.transform.parent.GetComponentInChildren<MeshRenderer>();
-            if(renderer == null) return null;
-
-            MeshFilter filter = renderer.GetComponent<MeshFilter>();
 
             Camera cam = SceneView.lastActiveSceneView.camera;
-
             Vector3 camUp = cam != null ? cam.transform.up : Vector3.up;
-            
-            Color color = Properties.UseColor ? Properties.Color : ColorCast.Ray(new(ray, filter, renderer), camUp).Color;
 
-            return CreateBlade(normal, Random.Range(0f, 360f), position, color);
+            if(!ColorCast.Ray(ray, camUp, out ColorCast.RenderRaycastOut? rayOut)) return null;
+
+            return CreateBlade(normal, Random.Range(0f, 360f), rayOut.Value.Point, rayOut.Value.Color);
         }
 
         protected BladesInstance CreateBlade (Vector3 direction, float yRotation, Vector3 position, Color color)

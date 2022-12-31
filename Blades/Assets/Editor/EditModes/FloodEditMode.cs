@@ -40,7 +40,7 @@ namespace Blades.UnityEditor
 
                         if(Physics.OverlapSphere(bladePosition + new Vector3(0, .5f, 0), .75f, Properties.Layers).Length > 1) continue;
                         
-                        BladesInstance? blade = CreateSafeBlade(collider, hit.normal, bladePosition);
+                        BladesInstance? blade = CreateSafeBlade(hit.normal, bladePosition);
 
                         if(blade is not null) Type.Collection.Add(blade.Value);
                     }
