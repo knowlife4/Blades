@@ -11,6 +11,8 @@ namespace Blades.UnityEditor
             Manager = manager;
             Name = name;
             Properties = new(manager);
+
+            ColorCast.UpdateRendererCache();
         }
 
         public string Name { get; }

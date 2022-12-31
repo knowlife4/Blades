@@ -36,7 +36,7 @@ half3 viewNormalAtPixelPosition(float2 vpos, float depthValue)
     return viewNormal;
 }
 
-[numthreads(32, 32, 1)]
+[numthreads(1, 1, 1)]
 void DepthCalc (uint3 id : SV_DispatchThreadID)
 {   
     uint2 pos = id.xy;
@@ -46,5 +46,5 @@ void DepthCalc (uint3 id : SV_DispatchThreadID)
     float final = lerp(1, 0, depthSample) * farPlane;
     half3 normal = viewNormalAtPixelPosition(pos, final);
 
-    if(pos.x == 255 && pos.y == 255) depth[0] = float4(normal, final < farPlane ? final : 0);
+    depth[0] = float4(normal, final < farPlane ? final : 0);
 }

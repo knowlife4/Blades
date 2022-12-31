@@ -13,7 +13,7 @@ public class ColorCast
     {
         get
         {
-            if(castRenderTexture == null) castRenderTexture = new(256, 256, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            if(castRenderTexture == null) castRenderTexture = new(16, 16, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
             return castRenderTexture;
         }
     }
@@ -24,7 +24,7 @@ public class ColorCast
     {
         get
         {
-            if(castTexture == null) castTexture = new(256, 256);
+            if(castTexture == null) castTexture = new(16, 16);
             return castTexture;
         }
     }
@@ -35,36 +35,16 @@ public class ColorCast
     {
         get
         {
-            if(depthRenderTexture == null) depthRenderTexture = new(256, 256, 32, RenderTextureFormat.Depth);
+            if(depthRenderTexture == null) depthRenderTexture = new(16, 16, 32, RenderTextureFormat.Depth);
             return depthRenderTexture;
         }
     }
 
-    private static RenderTexture depthNormalRenderTexture;
-
-    public static RenderTexture DepthNormalRenderTexture 
-    {
-        get
-        {
-            if(depthNormalRenderTexture == null) depthNormalRenderTexture = new(256, 256, 0, RenderTextureFormat.ARGB32);
-            return depthNormalRenderTexture;
-        }
-    }
-
-    private static Texture2D depthTexture;
-
-    public static Texture2D DepthTexture
-    {
-        get
-        {
-            if(depthTexture == null) depthTexture = new(256, 256, TextureFormat.R16, false);
-            return depthTexture;
-        }
-    }
+    public static void UpdateRendererCache () => rendererCache = Object.FindObjectsOfType<MeshRenderer>();
 
     public static bool Ray (Ray ray, Vector3 up, out RenderRaycastOut? rayOut)
     {
-        rendererCache = Object.FindObjectsOfType<MeshRenderer>();
+        if(rendererCache == null) UpdateRendererCache();
 
         rayOut = null;
 
@@ -101,7 +81,7 @@ public class ColorCast
 
         cb.SetRenderTarget(CastRenderTexture, DepthRenderTexture);
 
-        var proj = Matrix4x4.Ortho(-.1f, .1f, -.1f, .1f, .01f, input.Max);
+        var proj = Matrix4x4.Ortho(-.05f, .05f, -.05f, .05f, .01f, input.Max);
 
         var view = Matrix4x4.LookAt(input.Ray.origin, input.Ray.origin + input.Ray.direction, up);
 
@@ -143,13 +123,13 @@ public class ColorCast
         ComputeBuffer buffer = new(1, sizeof(float) * 4);
         depthShader.SetBuffer(kernel, "depth", buffer);
 
-        depthShader.Dispatch(kernel, 8, 8, 1);
+        depthShader.Dispatch(kernel, 1, 1, 1);
 
         Vector4[] output = new Vector4[1];
         buffer.GetData(output);
         buffer.Release();
 
-        Debug.Log(output[0]);
+        //Debug.Log(output[0]);
 
         return output[0];
     }
