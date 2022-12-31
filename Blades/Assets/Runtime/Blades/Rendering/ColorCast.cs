@@ -50,6 +50,8 @@ public class ColorCast
 
         foreach (var renderer in rendererCache)
         {
+            if(!renderer.isVisible) continue;
+            if(renderer.shadowCastingMode == ShadowCastingMode.ShadowsOnly) continue;
             if(!renderer.bounds.IntersectRay(ray)) continue;
 
             MeshFilter filter = renderer.GetComponent<MeshFilter>();
@@ -95,7 +97,10 @@ public class ColorCast
 
         cb.ClearRenderTarget(true, true, Color.black);
 
-        cb.DrawMesh(input.Mesh, input.Transform.localToWorldMatrix, input.Material);
+        for (int i = 0; i < input.Mesh.subMeshCount; i++)
+        {
+            cb.DrawMesh(input.Mesh, input.Transform.localToWorldMatrix, input.Materials[i], i);
+        }
 
         Graphics.ExecuteCommandBuffer(cb);
 
@@ -160,14 +165,14 @@ public class ColorCast
         {
             Ray = ray;
             Mesh = filter.sharedMesh;
-            Material = renderer.sharedMaterial;
+            Materials = renderer.materials;
             Transform = renderer.transform;
             Max = max;
         }
 
         public Ray Ray { get; }
         public Mesh Mesh { get; }
-        public Material Material { get; }
+        public Material[] Materials { get; }
         public Transform Transform { get; }
         public float Max { get; }
     }
