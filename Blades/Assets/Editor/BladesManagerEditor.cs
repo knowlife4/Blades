@@ -34,7 +34,8 @@ namespace Blades.UnityEditor
             Event e = Event.current;
             if(!e.alt) return;
             
-            bool interacting = e.isMouse && e.type == EventType.MouseDrag && e.button == 1;
+            bool startPress = e.isMouse && (e.type == EventType.MouseDown) && e.button == 1;
+            bool interacting = e.isMouse && (e.type == EventType.MouseDrag || e.type == EventType.MouseDown) && e.button == 1;
 
             bool scrolling = e.type == EventType.ScrollWheel;
             float delta = -e.delta.y;
@@ -55,7 +56,7 @@ namespace Blades.UnityEditor
 
             modeSelector.Use(interacting);
 
-            if(e.type == EventType.MouseDown) modeSelector.UseStart();
+            if(startPress) modeSelector.UseStart();
             if(e.type == EventType.MouseUp) modeSelector.UseEnd();
         }
 
@@ -170,24 +171,25 @@ namespace Blades.UnityEditor
         {
             GUILayout.Label("Blades Properties:");
 
-            EditorGUIUtility.labelWidth = 100;
+            UseHeight = RenderOption("Height", showUse, UseHeight, () => {Height = EditorGUILayout.FloatField(Height, GUILayout.ExpandWidth(true));});
+
+            UseColor = RenderOption("Color", showUse, UseColor, () => {Color = EditorGUILayout.ColorField(Color, GUILayout.ExpandWidth(true));});
+        }
+
+        public static bool RenderOption (string name, bool showUse, bool use, System.Action guiCall)
+        {
+            bool toggleValue = false;
             GUILayout.BeginHorizontal();
-                if(showUse) UseHeight = EditorGUILayout.Toggle(UseHeight, GUILayout.Width(20));
-                EditorGUI.BeginDisabledGroup(!UseHeight);
-                    EditorGUILayout.PrefixLabel("Height:");
-                    Height = EditorGUILayout.FloatField(Height, GUILayout.ExpandWidth(true));
+                if(showUse) toggleValue = EditorGUILayout.Toggle(use, GUILayout.Width(20));
+                EditorGUI.BeginDisabledGroup(!use);
+                    GUILayout.Label($"{name}");
+                    guiCall();
                 EditorGUI.EndDisabledGroup();
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
 
-            GUILayout.BeginHorizontal();
-                if(showUse) UseColor = EditorGUILayout.Toggle(UseColor, GUILayout.Width(20));
-                EditorGUI.BeginDisabledGroup(!UseColor);
-                    EditorGUILayout.PrefixLabel("Color:");
-                    Color = EditorGUILayout.ColorField(Color, GUILayout.ExpandWidth(true));
-                EditorGUI.EndDisabledGroup();
-            GUILayout.EndHorizontal();
+            return toggleValue;
         }
     }
 }

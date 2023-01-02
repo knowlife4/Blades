@@ -14,6 +14,8 @@ namespace Blades.UnityEditor
             GUILayout.Space(10);
 
             if(GUILayout.Button("Flood Fill?")) Flood();
+            if(GUILayout.Button("Subdivide?")) Subdivide();
+            if(GUILayout.Button("Combine?")) Combine();
         }
         
         public void Flood ()
@@ -45,6 +47,30 @@ namespace Blades.UnityEditor
                         if(blade is not null) Type.Collection.Add(blade.Value);
                     }
                 }
+            }
+
+            Type.Collection.PushUndo();
+            Type.Reload();
+        }
+
+        public void Subdivide ()
+        {
+            foreach (var existingBlade in Type.Collection.ToArray())
+            {
+                BladesInstance? blade = CreateSafeBlade(existingBlade.Rotation.GetColumn(1), existingBlade.Position + new Vector3(Random.Range(-.5f, .5f), 0, Random.Range(-.5f, .5f)));
+
+                if(blade is not null) Type.Collection.Add(blade.Value);
+            }
+
+            Type.Collection.PushUndo();
+            Type.Reload();
+        }
+
+        public void Combine ()
+        {
+            foreach (var existingBlade in Type.Collection.ToArray())
+            {
+                if(Random.value <= .5f) Type.Collection.Remove(existingBlade);
             }
 
             Type.Collection.PushUndo();

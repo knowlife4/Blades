@@ -54,7 +54,7 @@ namespace Blades.Rendering
         {
             foreach (var type in BladesTypes)
             {
-                type.Cull(camTransform, distance, cameraHalfDiagonalFovDotProduct, ignoreRate);
+                if(type.Collection != null || type.Collection.Count != 0) type.Cull(camTransform, distance, cameraHalfDiagonalFovDotProduct, ignoreRate);
             }
         }
 
@@ -121,7 +121,7 @@ namespace Blades.Rendering
 
         public void Cull (Transform camTransform, float distance, float cameraHalfDiagonalFovDotProduct, int ignoreRate) 
         {
-            if(!execute) return;
+            if(!execute || instanceBufferRender == null) return;
             instanceBufferRender.SetCounterValue(0);
 
             cullingShader.SetVector("_cameraPosition", camTransform.position);
@@ -130,7 +130,7 @@ namespace Blades.Rendering
             cullingShader.SetFloat("_distance", distance);
             cullingShader.SetInt("_ignoreRate", ignoreRate);
             
-            int xThreadCount = (int)(Collection.Count / threadX);
+            int xThreadCount = Mathf.CeilToInt((float)Collection.Count / threadX);
             if(xThreadCount > 0) cullingShader.Dispatch(kernel, xThreadCount, 1, 1);
 
             MaterialInstance.SetBuffer("_bladeBuffer", instanceBufferRender);

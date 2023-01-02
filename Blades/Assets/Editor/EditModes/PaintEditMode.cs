@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 namespace Blades.UnityEditor
@@ -5,10 +6,13 @@ namespace Blades.UnityEditor
     public class PaintEditMode : EditMode
     {
         public PaintEditMode (BladesManager manager, string name) : base(manager, name) {}
+
+        public bool precision;
         
         protected override void OnGUI()
         {
             Properties.RenderGUI(true);
+            precision = BladesProperties.RenderOption("Precision", true, precision, () => {});
         }
 
         protected override void OnUse(bool interacting)
@@ -16,12 +20,27 @@ namespace Blades.UnityEditor
             RaycastHit? hit = Brush();
             if(hit is null || !interacting) return;
 
-            Paint(hit.Value.point, hit.Value.normal, hit.Value.collider);
+            if(!precision) Paint(hit.Value.point, hit.Value.normal);
+        }
+
+        protected override void OnUseStart()
+        {
+            RaycastHit? hit = Brush();
+            if(hit is null) return;
+
+            if(precision) PaintPrecise(hit.Value.point, hit.Value.normal);
+        }
+
+        public void PaintPrecise (Vector3 hitPoint, Vector3 hitNormal)
+        {
+            BladesInstance? blade = CreateSafeBlade(hitNormal, hitPoint);
+
+            if(blade is not null && Type.Collection is not null) Type.Collection.Add(blade.Value);
 
             Type.Reload();
         }
 
-        public void Paint (Vector3 hitPoint, Vector3 hitNormal, Collider collider)
+        public void Paint (Vector3 hitPoint, Vector3 hitNormal)
         {
             float density = Properties.Density;
             float scaleFactor = 1 / density;

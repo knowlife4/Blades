@@ -17,7 +17,7 @@ float4 _cameraForward;
 float _cameraHalfDiagonalFovDotProduct;
 int _ignoreRate;
 
-[numthreads(16,1,1)]
+[numthreads(32,1,1)]
 void Cull (uint3 id : SV_DispatchThreadID)
 {
     uint identifier = id.x;

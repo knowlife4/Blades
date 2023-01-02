@@ -71,7 +71,7 @@ namespace Blades.UnityEditor
 
             if(!ColorCast.Ray(ray, camUp, out ColorCast.RenderRaycastOut? rayOut)) return null;
 
-            return CreateBlade(normal, Random.Range(0f, 360f), rayOut.Value.Point, rayOut.Value.Color);
+            return CreateBlade(normal, Random.Range(0f, 360f), rayOut.Value.Point, Properties.UseColor ? Properties.Color : rayOut.Value.Color);
         }
 
         protected BladesInstance CreateBlade (Vector3 direction, float yRotation, Vector3 position, Color color)

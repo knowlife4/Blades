@@ -66,6 +66,8 @@ public class ColorCast
 
             if(rayOut?.Length < depthWorld) continue;
 
+            if(color == Color.magenta) continue;
+
             rayOut = new(renderer, filter, color, depthWorld, hitPoint, new(depth.x, depth.y, depth.z));
             if(rayOut != null) Debug.DrawRay(rayOut.Value.Point, rayOut.Value.Normal, rayOut.Value.Color);
         }
@@ -95,7 +97,7 @@ public class ColorCast
 
         var inverse = GL.GetGPUProjectionMatrix(proj, false);
 
-        cb.ClearRenderTarget(true, true, Color.black);
+        cb.ClearRenderTarget(true, true, Color.magenta);
 
         for (int i = 0; i < input.Mesh.subMeshCount; i++)
         {
@@ -165,7 +167,7 @@ public class ColorCast
         {
             Ray = ray;
             Mesh = filter.sharedMesh;
-            Materials = renderer.materials;
+            Materials = renderer.sharedMaterials;
             Transform = renderer.transform;
             Max = max;
         }
