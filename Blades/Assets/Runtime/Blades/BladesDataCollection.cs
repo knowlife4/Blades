@@ -114,17 +114,18 @@ namespace Blades
 
         public BladesInstance (Vector3 position, Matrix4x4 rotation, Vector3 color, float height = 1)
         {
+            Identity = Random.value;
             Position = position;
             Height = height;
             Color = color;
             Rotation = rotation;
         }
-
         public Vector3 Position;
         public Matrix4x4 Rotation;
         public float Height;
         public Vector3 Color;
+        public float Identity;
 
-        public static int Size =>  (/*Color*/sizeof(float) * 3) + (/*Position*/sizeof(float) * 3) + (/*Rotation*/sizeof(float) * 16) + (/*Height*/sizeof(float));
+        public static int Size => (sizeof(float) * 3) + (sizeof(float) * 16) + (sizeof(float)) + (sizeof(float) * 3) + (sizeof(float));
     }
 }

@@ -6,6 +6,7 @@ struct BladesInstance
     float4x4 Rotation;
     float Height;
     float3 Color;
+    float identity;
 };
 
 StructuredBuffer<BladesInstance> _bladeBuffer;

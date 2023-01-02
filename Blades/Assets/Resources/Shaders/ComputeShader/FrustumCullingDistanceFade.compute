@@ -6,6 +6,7 @@ struct BladesInstance
     float4x4 Rotation;
     float Height;
     float3 Color;
+    float identity;
 };
 
 StructuredBuffer<BladesInstance> _bladeBuffer;
@@ -25,16 +26,20 @@ void Cull (uint3 id : SV_DispatchThreadID)
 
     BladesInstance blade = _bladeBuffer[identifier];
 
-    if(identifier % (pow(_ignoreRate - 1, 3) + 1) != 0 || _ignoreRate == 0) return;
+    if(identifier % _ignoreRate != 0) return;
 
-    float bladeDistance = distance(_cameraPosition.xyz, blade.Position);
-    if(bladeDistance > _distance) return;
-    
-    float distanceFromQuarter = clamp(bladeDistance - (_distance * .25), 0, _distance);
-    if(identifier % pow(ceil((distanceFromQuarter / _distance) * 4), 2) != 0) return;
+    //if(distance(_cameraPosition.xyz, blade.Position) > _distance) return;
 
     float forward = dot(normalize(blade.Position - _cameraPosition.xyz), _cameraForward.xyz);
     if (forward < _cameraHalfDiagonalFovDotProduct) return;
+
+    float dist = distance(_cameraPosition.xyz, blade.Position);
+
+    float dist01 = saturate(float(dist) / _distance);
+
+    float id01 = saturate(float(identifier) / _bladeBuffer.Length);
+
+    if(dist01 > .15 && blade.identity < pow(dist01, (1 - dist01) * 5)) return;
 
     _bladeBufferRender.Append(blade);
 }

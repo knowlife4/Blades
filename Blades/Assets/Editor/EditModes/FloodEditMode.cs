@@ -14,8 +14,9 @@ namespace Blades.UnityEditor
             GUILayout.Space(10);
 
             if(GUILayout.Button("Flood Fill?")) Flood();
-            if(GUILayout.Button("Subdivide?")) Subdivide();
-            if(GUILayout.Button("Combine?")) Combine();
+            if(GUILayout.Button("Flood Update?")) Update();
+            if(GUILayout.Button("Flood Subdivide?")) Subdivide();
+            if(GUILayout.Button("Flood Combine?")) Combine();
         }
         
         public void Flood ()
@@ -47,6 +48,20 @@ namespace Blades.UnityEditor
                         if(blade is not null) Type.Collection.Add(blade.Value);
                     }
                 }
+            }
+
+            Type.Collection.PushUndo();
+            Type.Reload();
+        }
+
+        public void Update ()
+        {
+            foreach (var existingBlade in Type.Collection.ToArray())
+            {
+                Color color = Properties.UseColor ? Properties.Color : new(existingBlade.Color.x, existingBlade.Color.y, existingBlade.Color.z);
+                BladesInstance? newBlade = new(existingBlade.Position, existingBlade.Rotation, new(color.r, color.g, color.b), Properties.UseHeight ? Properties.Height : existingBlade.Height);
+
+                if(newBlade is not null) Type.Collection.Replace(existingBlade, newBlade.Value);
             }
 
             Type.Collection.PushUndo();

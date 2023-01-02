@@ -20,15 +20,14 @@ namespace Blades.UnityEditor
             RaycastHit? hit = Brush();
             if(hit is null || !interacting) return;
 
-            if(!precision) Paint(hit.Value.point, hit.Value.normal);
-        }
-
-        protected override void OnUseStart()
-        {
-            RaycastHit? hit = Brush();
-            if(hit is null) return;
-
-            if(precision) PaintPrecise(hit.Value.point, hit.Value.normal);
+            if(precision)
+            {
+                PaintPrecise(hit.Value.point, hit.Value.normal);
+            }
+            else
+            {
+                Paint(hit.Value.point, hit.Value.normal);
+            }
         }
 
         public void PaintPrecise (Vector3 hitPoint, Vector3 hitNormal)
