@@ -39,7 +39,7 @@ void Cull (uint3 id : SV_DispatchThreadID)
 
     float id01 = saturate(float(identifier) / _bladeBuffer.Length);
 
-    if(dist01 > .15 && blade.identity < pow(dist01, (1 - dist01) * 5)) return;
+    if(dist01 > .15 && blade.identity < pow(dist01, (1 - dist01) * 2)) return;
 
     _bladeBufferRender.Append(blade);
 }
