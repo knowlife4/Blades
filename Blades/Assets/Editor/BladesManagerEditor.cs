@@ -142,7 +142,10 @@ namespace Blades.UnityEditor
         public float Height { get; set; }
 
         public bool UseColor { get; set; }
-        public Color Color { get; set; }
+        public Color ColorA { get; set; }
+        public Color ColorB { get; set; }
+
+        public Color Color => HSVColor.Lerp(new(ColorA), new(ColorB), Random.value).ToColor();
 
         public void RenderGUI (bool showUse)
         {
@@ -173,7 +176,7 @@ namespace Blades.UnityEditor
 
             UseHeight = RenderOption("Height", showUse, UseHeight, () => {Height = EditorGUILayout.FloatField(Height, GUILayout.ExpandWidth(true));});
 
-            UseColor = RenderOption("Color", showUse, UseColor, () => {Color = EditorGUILayout.ColorField(Color, GUILayout.ExpandWidth(true));});
+            UseColor = RenderOption("Color", showUse, UseColor, () => {GUILayout.Space(50); ColorA = EditorGUILayout.ColorField(ColorA, GUILayout.ExpandWidth(true)); ColorB = EditorGUILayout.ColorField(ColorB, GUILayout.ExpandWidth(true));});
         }
 
         public static bool RenderOption (string name, bool showUse, bool use, System.Action guiCall)

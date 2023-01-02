@@ -13,14 +13,7 @@ namespace Blades.UnityEditor
         {
             Properties.RenderGUI(true);
 
-            GUILayout.Space(10);
-
-            GUILayout.BeginHorizontal();
-                updatePosition = EditorGUILayout.Toggle(updatePosition, GUILayout.Width(20));
-                EditorGUI.BeginDisabledGroup(!updatePosition);
-                    GUILayout.Label("Reproject");
-                EditorGUI.EndDisabledGroup();
-            GUILayout.EndHorizontal();
+            updatePosition = BladesProperties.RenderOption("Reproject", true, updatePosition, () => {});
         }
 
         protected override void OnUse(bool interacting)
