@@ -94,6 +94,8 @@ namespace Blades
         {
             blades = ToArray();
 
+            if(Application.isPlaying) return;
+
             //! GET RID OF THIS FOR THE LOVE OF GOD AND ALL THAT IS HOLY
             #if UNITY_EDITOR
                 UnityEditor.EditorUtility.SetDirty(this);
